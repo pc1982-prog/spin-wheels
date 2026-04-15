@@ -31,7 +31,6 @@ const SpinPage = () => {
       const { reward } = res.data.data;
       setLeadData({ ...formValues, reward });
       setStep(STEPS.WHEEL);
-      // Auto-spin after short delay
       setTimeout(() => {
         spinToIndex(reward.index, () => {
           setTimeout(() => setShowModal(true), 600);
@@ -47,34 +46,32 @@ const SpinPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] relative overflow-hidden flex flex-col">
-      {/* Background decorations */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-gray-50 relative overflow-hidden flex flex-col">
+      {/* Subtle background blobs */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-pink-100/60 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-100/50 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header */}
-      <header className="relative z-10 text-center pt-8 pb-4 px-4">
-        <span className="text-yellow-400 text-2xl">⚕️</span>
-        <span className="ml-2 font-display text-white font-bold text-lg">HealthSpin</span>
-      </header>
+     
 
       {/* Main content */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8">
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-10">
         {step === STEPS.FORM && (
           <div className="w-full max-w-md animate-fade-up">
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-sm shadow-2xl">
+            <div className="bg-white border border-gray-100 rounded-2xl p-8 shadow-xl shadow-pink-100/40">
               <LeadForm onSubmit={handleFormSubmit} isLoading={isSubmitting} />
             </div>
           </div>
         )}
 
         {step === STEPS.WHEEL && (
-          <div className="flex flex-col items-center gap-8 animate-fade-up">
+          <div className="flex flex-col items-center gap-6 animate-fade-up">
             <div className="text-center">
-              <h2 className="font-display text-3xl font-bold text-white mb-2">
-                {isSpinning ? "Spinning..." : winner ? "You Won! 🎉" : "Ready to spin?"}
+              <h2 className="text-3xl font-bold text-gray-800 mb-1">
+                {isSpinning ? "Spinning..." : winner ? (
+                  <>You Won! <span className="text-pink-600">🎉</span></>
+                ) : "Ready to spin?"}
               </h2>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-500 text-sm">
                 {isSpinning
                   ? "The wheel is picking your reward..."
                   : winner
@@ -93,9 +90,9 @@ const SpinPage = () => {
             {!isSpinning && winner && (
               <button
                 onClick={() => setShowModal(true)}
-                className="px-8 py-3 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-500 
-                  text-gray-900 font-semibold shadow-lg shadow-orange-500/30 
-                  hover:shadow-orange-500/50 hover:-translate-y-0.5 transition-all duration-200"
+                className="px-8 py-3 rounded-full bg-pink-600 hover:bg-pink-700
+                  text-white font-semibold shadow-lg shadow-pink-200
+                  hover:shadow-pink-300 hover:-translate-y-0.5 transition-all duration-200"
               >
                 🎁 View My Reward
               </button>
@@ -113,8 +110,8 @@ const SpinPage = () => {
         />
       )}
 
-      <footer className="relative z-10 text-center py-4 text-gray-600 text-xs">
-        © {new Date().getFullYear()} HealthSpin. All rights reserved.
+      <footer className="relative z-10 text-center py-4 text-gray-400 text-xs border-t border-gray-100 bg-white">
+        © {new Date().getFullYear()}Strategix. All rights reserved.
       </footer>
     </div>
   );

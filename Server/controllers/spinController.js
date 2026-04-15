@@ -2,10 +2,11 @@ const { validationResult } = require("express-validator");
 const Lead = require("../models/Lead");
 const { selectReward, getAllRewards, getRewardIndex } = require("../services/rewardService");
 const { appendLeadToExcel } = require("../services/excelService");
+const { appendLeadToSheets } = require("../services/googleSheetsService");
 
 /**
  * POST /api/spin
- * Validates user input, assigns reward, saves to DB and Excel
+ * Validates user input, assigns reward, saves to DB + Excel + Google Sheets
  */
 const submitSpin = async (req, res, next) => {
   try {
@@ -62,13 +63,23 @@ const submitSpin = async (req, res, next) => {
       ipAddress,
     });
 
-    // Save to Excel (non-blocking)
-    appendLeadToExcel({
+    // ✅ Save to Excel + Google Sheets — dono parallel mein, non-blocking
+    const saveData = {
       name: lead.name,
       email: lead.email,
       phone: lead.phone,
       reward: lead.reward,
       sourceWebsite: lead.sourceWebsite,
+    };
+
+    Promise.all([
+      appendLeadToExcel(saveData),
+      appendLeadToSheets(saveData),
+    ]).then(([excelOk, sheetsOk]) => {
+      if (!excelOk)  console.warn("⚠️  Excel save failed for:", lead.email);
+      if (!sheetsOk) console.warn("⚠️  Google Sheets save failed for:", lead.email);
+    }).catch((err) => {
+      console.error("❌ Save error:", err.message);
     });
 
     return res.status(201).json({

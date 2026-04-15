@@ -7,31 +7,25 @@ const ResultModal = ({ reward, userName, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal */}
       <div className="relative z-10 w-full max-w-sm animate-bounce-in">
-        <div className="bg-gradient-to-b from-[#1e1e3f] to-[#0f0f1a] border border-white/10 rounded-3xl p-8 text-center shadow-2xl">
-          {/* Confetti emoji header */}
+        <div className="bg-white border border-pink-100 rounded-3xl p-8 text-center shadow-2xl shadow-pink-200/40">
+          {/* Header */}
           <div className="text-5xl mb-4 animate-bounce">🎉</div>
 
-          <h2 className="font-display text-2xl font-bold text-white mb-1">
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">
             Congratulations{userName ? `, ${userName.split(" ")[0]}` : ""}!
           </h2>
-          <p className="text-gray-400 text-sm mb-6">You won an exclusive offer</p>
+          <p className="text-gray-500 text-sm mb-6">You won an exclusive offer</p>
 
           {/* Reward badge */}
-          <div
-            className="rounded-2xl p-5 mb-6 relative overflow-hidden"
-            style={{ backgroundColor: reward.color + "22", border: `2px solid ${reward.color}66` }}
-          >
-            <div
-              className="absolute inset-0 opacity-10"
-              style={{ background: `radial-gradient(circle at center, ${reward.color}, transparent)` }}
-            />
-            <p className="relative font-display text-xl font-bold text-white leading-tight">
+          <div className="rounded-2xl p-5 mb-6 bg-pink-50 border-2 border-pink-200 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10 bg-gradient-to-br from-pink-400 to-rose-600" />
+            <p className="relative text-xl font-bold text-pink-700 leading-tight">
               {reward.label}
             </p>
           </div>
@@ -42,8 +36,8 @@ const ResultModal = ({ reward, userName, onClose }) => {
 
           <button
             onClick={onClose}
-            className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium
-              transition-all duration-200 border border-white/20 hover:border-white/40"
+            className="w-full py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold
+              transition-all duration-200 shadow-md shadow-pink-200"
           >
             Close
           </button>
