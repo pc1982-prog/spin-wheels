@@ -29,6 +29,12 @@ const REWARDS = [
       color: "#FD79A8",
       probability: 0.15,
     },
+    {
+      id: 6,
+      label: "Free AMH Test + 5% Discount on IVF Package",
+      color: "#FD79A8",
+      probability: 0.15,
+    },
   ];
   
   module.exports = { REWARDS };

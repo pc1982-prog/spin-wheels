@@ -51,8 +51,6 @@ const SpinPage = () => {
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-pink-100/60 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-100/50 rounded-full blur-3xl pointer-events-none" />
 
-     
-
       {/* Main content */}
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-10">
         {step === STEPS.FORM && (
@@ -64,7 +62,7 @@ const SpinPage = () => {
         )}
 
         {step === STEPS.WHEEL && (
-          <div className="flex flex-col items-center gap-6 animate-fade-up">
+          <div className="flex flex-col items-center gap-6 animate-fade-up w-full">
             <div className="text-center">
               <h2 className="text-3xl font-bold text-gray-800 mb-1">
                 {isSpinning ? "Spinning..." : winner ? (
@@ -80,12 +78,22 @@ const SpinPage = () => {
               </p>
             </div>
 
-            <SpinWheel
-              rewards={rewards}
-              rotation={rotation}
-              isSpinning={isSpinning}
-              spinDuration={SPIN_DURATION}
-            />
+            {/*
+              ✅ FIX: Give the wheel a constrained, centered container.
+              - w-full ensures the ResizeObserver in SpinWheel gets a real width
+              - max-w-[440px] caps it on desktop
+              - px-6 gives breathing room on mobile so wheel never touches edges
+              Without this, on mobile the parent had no explicit width,
+              causing ResizeObserver to sometimes fire with 0 or window width.
+            */}
+            <div className="w-full max-w-[440px] px-6 flex items-center justify-center">
+              <SpinWheel
+                rewards={rewards}
+                rotation={rotation}
+                isSpinning={isSpinning}
+                spinDuration={SPIN_DURATION}
+              />
+            </div>
 
             {!isSpinning && winner && (
               <button
