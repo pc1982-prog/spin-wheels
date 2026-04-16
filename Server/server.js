@@ -6,16 +6,15 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const spinRoutes = require("./routes/spinRoutes");
 const { globalErrorHandler, notFound } = require("./middleware/errorHandler");
+const { initWhitelistCache } = require("./services/googleSheetsService");
 
 dotenv.config();
 
 const app = express();
 
-// Connect to MongoDB
-connectDB();
-
-// Security middleware
+// ── Security middleware (register before routes) ──────────────────────────────
 app.use(helmet());
+
 const allowedOrigins = [
   "http://localhost:5173",
   "https://spin-wheels-frontend.onrender.com",
@@ -25,7 +24,6 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, Postman)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -37,30 +35,49 @@ app.use(
   })
 );
 
-// Logging
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-// Body parsing
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-// Routes
+// ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api/spin", spinRoutes);
 
-// Health check
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Error handlers
 app.use(notFound);
 app.use(globalErrorHandler);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`);
-});
+// ── Startup: DB → Cache → Listen (sab await) ─────────────────────────────────
+// YAHI tha asli bug: pehle connectDB() aur initWhitelistCache() bina await ke
+// chal rahe the. Server tabhi listen karna shuru kar deta tha jab DB/cache
+// ready bhi nahi hoti thi. Ab server tabhi requests accept karega jab dono
+// ready ho jaayein.
+const startServer = async () => {
+  try {
+    // 1. MongoDB connect karo — is ke baat hi duplicate check kaam karega
+    await connectDB();
+
+    // 2. Whitelist cache load karo — pehli request kabhi "cache miss" nahi hogi
+    await initWhitelistCache();
+
+    // 3. Ab sunna shuru karo
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(
+        `🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`
+      );
+    });
+  } catch (err) {
+    console.error("❌ Server startup failed:", err.message);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 module.exports = app;

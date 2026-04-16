@@ -9,11 +9,11 @@ import { submitSpin, fetchRewards } from "../services/api";
 const STEPS = { FORM: "form", WHEEL: "wheel", RESULT: "result" };
 
 const SpinPage = () => {
-  const [step, setStep] = useState(STEPS.FORM);
-  const [rewards, setRewards] = useState([]);
-  const [leadData, setLeadData] = useState(null);
+  const [step, setStep]               = useState(STEPS.FORM);
+  const [rewards, setRewards]         = useState([]);
+  const [leadData, setLeadData]       = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal]     = useState(false);
 
   const { isSpinning, rotation, winner, spinToIndex, reset, SPIN_DURATION } =
     useSpinWheel(rewards);
@@ -37,8 +37,31 @@ const SpinPage = () => {
         });
       }, 800);
     } catch (err) {
-      const msg =
-        err.response?.data?.message || "Something went wrong. Please try again.";
+      const code    = err.response?.data?.code;
+      const msg     = err.response?.data?.message || "Something went wrong. Please try again.";
+      const status  = err.response?.status;
+
+      // ── Whitelist error → special styled toast ──
+      if (status === 403 && code === "NOT_WHITELISTED") {
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? "animate-enter" : "animate-leave"
+              } max-w-sm w-full bg-white border-2 border-pink-300 shadow-xl shadow-pink-100 rounded-2xl p-4 flex gap-3 items-start`}
+            >
+              <div className="text-2xl">🔒</div>
+              <div>
+                <p className="font-semibold text-gray-800 text-sm">Access Restricted</p>
+                <p className="text-gray-500 text-xs mt-0.5">{msg}</p>
+              </div>
+            </div>
+          ),
+          { duration: 5000 }
+        );
+        return;
+      }
+
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
@@ -78,14 +101,6 @@ const SpinPage = () => {
               </p>
             </div>
 
-            {/*
-              ✅ FIX: Give the wheel a constrained, centered container.
-              - w-full ensures the ResizeObserver in SpinWheel gets a real width
-              - max-w-[440px] caps it on desktop
-              - px-6 gives breathing room on mobile so wheel never touches edges
-              Without this, on mobile the parent had no explicit width,
-              causing ResizeObserver to sometimes fire with 0 or window width.
-            */}
             <div className="w-full max-w-[440px] px-6 flex items-center justify-center">
               <SpinWheel
                 rewards={rewards}
