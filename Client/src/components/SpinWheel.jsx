@@ -22,13 +22,11 @@ const getAudioCtx = (() => {
   let ctx = null;
   return () => {
     if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // Resume if suspended (browser autoplay policy)
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
   };
 })();
 
-/** Single short tick / click */
 const playTick = (freq = 900, vol = 0.18, duration = 0.04) => {
   try {
     const ctx  = getAudioCtx();
@@ -45,11 +43,10 @@ const playTick = (freq = 900, vol = 0.18, duration = 0.04) => {
   } catch (_) {}
 };
 
-/** Ascending win fanfare */
 const playWinSound = () => {
   try {
     const ctx   = getAudioCtx();
-    const notes = [523, 659, 784, 1047, 1319]; // C5 E5 G5 C6 E6
+    const notes = [523, 659, 784, 1047, 1319];
     notes.forEach((freq, i) => {
       const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -80,13 +77,9 @@ const SpinWheel = ({ rewards, rotation, isSpinning, spinDuration }) => {
     let elapsed = 0;
 
     const fire = () => {
-      // progress 0→1 over spinDuration
       const progress    = Math.min(elapsed / spinDuration, 1);
-      // interval: 45 ms (fast) → 380 ms (slow)
       const interval    = 45 + progress * 335;
-      // pitch: high when fast, lower when slow
       const freq        = 1100 - progress * 500;
-      // volume: slightly louder at start
       const vol         = 0.22 - progress * 0.08;
 
       playTick(freq, vol, 0.035);
@@ -107,10 +100,8 @@ const SpinWheel = ({ rewards, rotation, isSpinning, spinDuration }) => {
   /* ── React to isSpinning changes ── */
   useEffect(() => {
     if (isSpinning && !prevSpinning.current) {
-      // Wheel just started spinning
       startTicks();
     } else if (!isSpinning && prevSpinning.current) {
-      // Wheel just stopped
       stopTicks();
       setTimeout(playWinSound, 180);
     }
@@ -124,9 +115,9 @@ const SpinWheel = ({ rewards, rotation, isSpinning, spinDuration }) => {
     const canvas = canvasRef.current;
     if (!canvas || !rewards.length) return;
 
-    const LOGICAL_SIZE = 440;
-    // Force at least 3× for razor-sharp text on all screens
-    const dpr = Math.max(window.devicePixelRatio || 1, 3);
+    // Desktop: 440px | Mobile: viewport width minus padding
+    const LOGICAL_SIZE = Math.min(440, window.innerWidth - 48);
+    const dpr = Math.max(window.devicePixelRatio || 1, 2);
 
     canvas.width  = LOGICAL_SIZE * dpr;
     canvas.height = LOGICAL_SIZE * dpr;
@@ -136,7 +127,6 @@ const SpinWheel = ({ rewards, rotation, isSpinning, spinDuration }) => {
     const ctx = canvas.getContext("2d");
     ctx.scale(dpr, dpr);
 
-    // Smooth all paths
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
 
@@ -163,27 +153,28 @@ const SpinWheel = ({ rewards, rotation, isSpinning, spinDuration }) => {
       ctx.lineWidth   = 1.5;
       ctx.stroke();
 
-      /* Text — NO shadow, NO blur → crystal clear */
+      /* ── TEXT with upside-down fix ── */
       ctx.save();
       ctx.translate(center, center);
-      ctx.rotate(angle + arc / 2);
+
+      const midAngle = angle + arc / 2;
+
+      // Check if segment is in the bottom half (text would appear upside down)
+      // Bottom half: midAngle between 90° and 270° (π/2 to 3π/2)
+      const normalizedAngle = ((midAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      const isBottomHalf = normalizedAngle > Math.PI / 2 && normalizedAngle < (3 * Math.PI) / 2;
 
       const segCount = rewards.length;
       const fontSize = segCount <= 5 ? 14 : segCount <= 7 ? 12.5 : 11.5;
 
-      // Crisp font: system-ui is the sharpest on every OS
       ctx.font         = `700 ${fontSize}px system-ui, -apple-system, 'Segoe UI', Arial, sans-serif`;
       ctx.fillStyle    = textColor;
       ctx.textAlign    = "center";
       ctx.textBaseline = "middle";
-
-      // ── ZERO shadow / blur ── keeps text HD
       ctx.shadowColor  = "transparent";
       ctx.shadowBlur   = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
-
-      // Thin dark stroke for contrast on light segments
       ctx.lineWidth   = fontSize > 12 ? 3.5 : 3;
       ctx.strokeStyle = "rgba(0,0,0,0.35)";
       ctx.lineJoin    = "round";
@@ -191,33 +182,68 @@ const SpinWheel = ({ rewards, rotation, isSpinning, spinDuration }) => {
       const textStart = 42;
       const textEnd   = radius - 18;
       const zoneWidth = textEnd - textStart;
-      const midX      = textStart + zoneWidth / 2;
 
-      /* Word wrap */
-      const words = reward.label.split(" ");
-      let lines = [], cur = "";
-      words.forEach((w) => {
-        const test = cur ? `${cur} ${w}` : w;
-        if (ctx.measureText(test).width > zoneWidth - 4 && cur) {
-          lines.push(cur);
-          cur = w;
-        } else {
-          cur = test;
-        }
-      });
-      if (cur) lines.push(cur);
-      if (lines.length > 3) lines = lines.slice(0, 3);
+      if (isBottomHalf) {
+        // Flip: rotate to midAngle + π, text goes from center outward (reversed)
+        ctx.rotate(midAngle + Math.PI);
 
-      const lh     = fontSize + 4.5;
-      const totalH = lines.length * lh;
-      const startY = -totalH / 2 + lh / 2;
+        const midX = -(textStart + zoneWidth / 2);
 
-      lines.forEach((line, li) => {
-        const y = startY + li * lh;
-        // Stroke first (outline), then fill → sharp edge + contrast
-        ctx.strokeText(line, midX, y);
-        ctx.fillText(line, midX, y);
-      });
+        /* Word wrap */
+        const words = reward.label.split(" ");
+        let lines = [], cur = "";
+        words.forEach((w) => {
+          const test = cur ? `${cur} ${w}` : w;
+          if (ctx.measureText(test).width > zoneWidth - 4 && cur) {
+            lines.push(cur);
+            cur = w;
+          } else {
+            cur = test;
+          }
+        });
+        if (cur) lines.push(cur);
+        if (lines.length > 3) lines = lines.slice(0, 3);
+
+        const lh     = fontSize + 4.5;
+        const totalH = lines.length * lh;
+        const startY = -totalH / 2 + lh / 2;
+
+        lines.forEach((line, li) => {
+          const y = startY + li * lh;
+          ctx.strokeText(line, midX, y);
+          ctx.fillText(line, midX, y);
+        });
+      } else {
+        // Normal top-half rendering
+        ctx.rotate(midAngle);
+
+        const midX = textStart + zoneWidth / 2;
+
+        /* Word wrap */
+        const words = reward.label.split(" ");
+        let lines = [], cur = "";
+        words.forEach((w) => {
+          const test = cur ? `${cur} ${w}` : w;
+          if (ctx.measureText(test).width > zoneWidth - 4 && cur) {
+            lines.push(cur);
+            cur = w;
+          } else {
+            cur = test;
+          }
+        });
+        if (cur) lines.push(cur);
+        if (lines.length > 3) lines = lines.slice(0, 3);
+
+        const lh     = fontSize + 4.5;
+        const totalH = lines.length * lh;
+        const startY = -totalH / 2 + lh / 2;
+
+        lines.forEach((line, li) => {
+          const y = startY + li * lh;
+          ctx.strokeText(line, midX, y);
+          ctx.fillText(line, midX, y);
+        });
+      }
 
       ctx.restore();
     });
@@ -241,7 +267,7 @@ const SpinWheel = ({ rewards, rotation, isSpinning, spinDuration }) => {
     ctx.lineWidth   = 3;
     ctx.stroke();
 
-    /* Center star — no shadow */
+    /* Center star */
     ctx.shadowBlur = 0;
     ctx.fillStyle  = "#E91E8C";
     ctx.font       = "bold 22px system-ui, sans-serif";
@@ -277,17 +303,10 @@ const SpinWheel = ({ rewards, rotation, isSpinning, spinDuration }) => {
           overflow:     "hidden",
           willChange:   "transform",
           boxShadow:    "0 0 40px rgba(233,30,140,0.2), 0 20px 60px rgba(0,0,0,0.15)",
+          lineHeight:   0,   // remove any inline gap below canvas
         }}
       >
-        <canvas
-          ref={canvasRef}
-          className="block"
-          style={{
-            maxWidth: "min(440px, 88vw)",
-            height:   "auto",
-            // pixelated would blur scaled-down canvas — remove it
-          }}
-        />
+        <canvas ref={canvasRef} className="block" />
       </div>
     </div>
   );

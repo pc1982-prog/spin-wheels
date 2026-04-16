@@ -111,7 +111,7 @@ const SpinPage = () => {
       )}
 
       <footer className="relative z-10 text-center py-4 text-gray-400 text-xs border-t border-gray-100 bg-white">
-        © {new Date().getFullYear()}Strategix. All rights reserved.
+        © {new Date().getFullYear()} Strategix. All rights reserved.
       </footer>
     </div>
   );

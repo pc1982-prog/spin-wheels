@@ -12,6 +12,7 @@ node_modules
 dist
 dist-ssr
 *.local
+/data/leads.xlsx
 
 # Editor directories and files
 .vscode/*
